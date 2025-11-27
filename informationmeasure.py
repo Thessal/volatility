@@ -46,7 +46,7 @@ class Filtration(InformationMeasure):
         # Conditional expectation is a projection to known information set, in L2 space.
         # That is Ito calculus
         _, _, density = self.copula(x0, x1)
-        return density
+        return density.ravel()
             
     def copula(self, x, y):
         # joint distribution estimation using KDE
@@ -55,12 +55,13 @@ class Filtration(InformationMeasure):
         mat = base.matrix(xy_flat, ncol=2)
             
         # The `H` argument (bandwidth matrix) is determined automatically by default.
-        result = ks.kde(x=mat)
+        result = ks.kde(x=mat, gridsize=ro.FloatVector([100,100]), xmin=ro.FloatVector([-0.001,-0.001]), xmax = ro.FloatVector([0.001,0.001]))
         r_x = np.array(result.rx2('eval.points').rx2(1))
         r_y = np.array(result.rx2('eval.points').rx2(2))
         r_density = np.array(result.rx2('estimate'))
 
         return r_x, r_y, r_density
+
 
 
 

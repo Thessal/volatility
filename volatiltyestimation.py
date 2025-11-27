@@ -33,8 +33,9 @@ class TSRV(VolatilityEstimator):
 
     def _pred(self, logprc, sampling_period: int) -> np.ndarray:
         # Two-scale Realized variance
-        x1 = np.square(logprc[:-sampling_period] - logprc[sampling_period:]).mean() 
-        x2 = np.square(np.diff(logprc)).mean() 
+        x1 = np.square(logprc[:-sampling_period] -
+                       logprc[sampling_period:]).mean()
+        x2 = np.square(np.diff(logprc)).mean()
         tsrv = x1 - x2
         # spot_variance = (tsrv[t] - tsrv[t-h]) / h #???
         return tsrv
@@ -62,7 +63,7 @@ class PRV(VolatilityEstimator):
         return logret_preavg, kernel
 
     def true_price(self, logprc, window):
-        kernel = np.ones(max(1,window//2)) 
+        kernel = np.ones(max(1, window//2))
         kernel /= len(kernel)
         return np.convolve(logprc, kernel, mode='valid')
 
@@ -80,7 +81,7 @@ class PRV(VolatilityEstimator):
             info_amt = information_measure(logret_avg, n=iteration)
             rv = np.square(np.diff(self.true_price(logprc, window=w))).mean()
             prv = self._pred(logprc, w)
-            score = prv/info_amt # FIXME : no mathematical resoning. need to think
+            score = prv/info_amt  # FIXME : no mathematical resoning. need to think
             print(
                 f"window = {w}\t information amount = {info_amt:.2e}\t prv/rv = {prv/rv:.2e}\t rv = {rv:.2e}\t prv = {prv:.2e} \t score = {score:.2e}")
             scores[w] = score
@@ -93,6 +94,7 @@ class PRV(VolatilityEstimator):
 class ADF():
     # adfuller 기반 window 찾기
     pass
+
 
 class TRV():
     pass
