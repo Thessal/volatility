@@ -14,7 +14,15 @@ class VolatilityEstimator:
         self.params: List[Dict] = []
         self.optimal_param: Dict = None
 
-    def _pred(self, logprc, **kwargs) -> np.ndarray:
+    def _true_price(self, **kwargs) -> np.ndarray:
+        raise NotImplementedError
+    
+    def true_price(self, **kwargs) -> np.ndarray:
+        true_price = self._true_price(**kwargs)
+        assert true_price.shape == self.logprc.shape
+        return true_price
+
+    def _pred(self, logprc, **kwargs) -> np.float64:
         raise NotImplementedError
 
     def pred(self, **kwargs) -> float:
@@ -42,8 +50,7 @@ class TSRV(VolatilityEstimator):
 
 
 class PRV(VolatilityEstimator):
-
-    def _pred(self, logprc, sampling_period: int) -> np.ndarray:
+    def _pred(self, logprc, sampling_period: int) -> np.float64:
         logret = np.diff(logprc)
 
         logret_preavg, kernel = self.preaveraging(logret, sampling_period)
@@ -62,15 +69,16 @@ class PRV(VolatilityEstimator):
         logret_preavg = np.convolve(logret, kernel, mode='valid')
         return logret_preavg, kernel
 
-    def true_price(self, logprc, window):
+    def _true_price(self, window) -> np.ndarray:
         kernel = np.ones(max(1, window//2))
         kernel /= len(kernel)
-        return np.convolve(logprc, kernel, mode='valid')
+        return np.convolve(self.logprc, kernel, mode='valid')
 
     def fit(self) -> dict:
         logprc = self.logprc.copy()
         logret = np.diff(logprc)
-        windows = range(1, 20, 2)
+        # windows = range(1, 20, 2)
+        windows = [1,3,5,10,20,100,200,500]
         iteration = 30  # TODO : increase
         scores = dict()
 
@@ -79,7 +87,7 @@ class PRV(VolatilityEstimator):
             logret_avg = self.preaveraging(logret, w)[0]
             # info_amt = information_measure(logret_avg[::max(1,w//2)], n=iteration)
             info_amt = information_measure(logret_avg, n=iteration)
-            rv = np.square(np.diff(self.true_price(logprc, window=w))).mean()
+            rv = np.square(np.diff(self.true_price(window=w))).mean()
             prv = self._pred(logprc, w)
             score = prv/info_amt  # FIXME : no mathematical resoning. need to think
             print(
@@ -90,19 +98,12 @@ class PRV(VolatilityEstimator):
         self.scores = scores
         return optimal_param
 
-
-class ADF():
-    # adfuller 기반 window 찾기
+class TRV(VolatilityEstimator):
     pass
 
 
-class TRV():
-    pass
-
-
-class Fracdiff:
+class Fracdiff(VolatilityEstimator):
     # Stationary 해질때까지 차분하여 Fourier/Pade transform
-
     def comb(self, n, k):
         return scipy.special.gamma(n+1)/scipy.special.gamma(k+1)/scipy.special.gamma(n-k+1)
 
@@ -116,13 +117,23 @@ class Fracdiff:
                 break
         return np.array(coeffs)
 
-    def fracdiff(self, x: np.array, order: float, tau=1e-2):
+    def fracdiff(self, logprc, order, tau=1e-2) -> np.ndarray:
         kernel = self.fracdiff_kernel(order, tau)
-        return np.convolve(kernel, x)[:-len(kernel)+1]
+        return np.convolve(kernel, logprc)[:-len(kernel)+1]
+    
+    def _true_price(self, **kwargs) -> np.ndarray:
+        # TODO: fracdiff를 할지, 아니면 frequency cut을 할지..
+        return self.fracdiff(**kwargs)
 
-    # ## Stationary test over various fracdiff dimension
-    # # df_pvalues = pd.Series({order:st.adfuller(fracdiff(x_shift_cumsum, order))[1] for order in np.arange(0,1.5,0.01)})
-    # # df_pvalues.plot(marker=".", grid=True)
-    # # plt.gca().set_xticks(df_pvalues.index, minor=True)
-    # # plt.axhline(0.05, color="orange")
-    # # plt.axvline(1.28, color="gray")
+    def _pred(self, logprc, order, tau=1e-2) -> np.float64:
+        true_price = self.fracdiff(logprc, order, tau)
+        return np.var(true_price)
+        # return np.var(np.diff(true_price))
+
+    def fit(self) -> dict:
+        for order in np.arange(0, 1, 0.01):
+            pvalue = st.adfuller(self.fracdiff(self.logprc, order))[1]
+            if pvalue < 0.01:
+                break
+        self.optimal_param = {"order": order}
+        return order
