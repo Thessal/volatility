@@ -17,10 +17,14 @@
 Removes jumps and stitch the log-price
 
 \subsection{Truncation}
-Sub-Gaussian concentration condition was used to determine threshold parameter $\tau$ for each day.
-$$\tau = \sigma \sqrt{M} \sim \sqrt{\sum_t^{t+M}{r_t^2}}$$
-Truncation function with parameter $\tau$ was applied to the log return.
-$$\Psi_\tau(x) = \mathrm{sgn}(x) \min(|x|, \tau)$$
+Let truncation function $\Psi_\tau(x) = \mathrm{sgn}(x) \min(|x|, \tau)$.\\
+For the truncated process $\Psi_\tau(r_t)$, $-\tau \leq \Psi_\tau(r_t) \leq \tau$\\
+From Hoeffding's lemma
+$$E[\exp(\lambda r_t)] \leq \exp\left(\frac{\lambda^2 \tau^2}{2}\right)$$
+$\tau^2 < \sigma^2$ ensures $E[\exp(\lambda r_t)] \leq \exp\left(\frac{\lambda^2 \sigma^2}{2}\right) $ (sub-Gaussian)\\
+~\\
+So truncation was applied using, $$\tilde r_t = \Psi_\tau(r_t) = \mathrm{sgn}(r_t) \min\left(|r_t|, \tau=\sigma_t\right)$$
+where $\sigma^2 = \frac{1}{M}\sum_{i=t}^{t+M}r_i$
 
 \subsection{Truncation with MLE}
 Huber loss of truncated series was minimized with L1 regularization, using daily volatility as prior.
