@@ -1,4 +1,5 @@
 import numpy as np 
+import pandas as pd 
 
 class JumpAdjust:
     # Jump adjust / Heavy tail truncation
@@ -51,17 +52,19 @@ class JumpAdjust:
         tau_ = self._tau() # Huber theshold
         tau_scan = np.arange( tau_.mean()*0.1, tau_.max()*5, tau_.mean()*0.1 )
         # Truncation threshold from 0.1 sigma to 5 sigma
-        losses = {
+        losses = pd.DataFrame({
             tau: 
-                self.huber(
+                # self.huber(
                     daily_std - 
-                    self._rolling_std(self.trunc(self.logret, tau), self.M),
-                    tau_
-                ).mean()
+                    self._rolling_std(self.trunc(self.logret, tau), self.M)
+                    # ,
+                    # tau_
+                # ).mean()
             for tau in tau_scan
-        }
-        # pd.Series(losses).plot()
-        optimal_tau = min(losses, key=losses.get)
+        })
+        losses[:] = self.huber(losses.values, 1.0)
+        optimal_tau = losses.idxmin(axis=1).values
+        
         truncated = np.sign(self.logret) * np.minimum(np.abs(self.logret), optimal_tau)
         assert truncated.shape == self.logret.shape
         return truncated.cumsum(), optimal_tau
