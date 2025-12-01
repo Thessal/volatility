@@ -5,8 +5,8 @@ import scipy
 import statsmodels.tsa.stattools as st
 
 
-class Variance:
-    # Returns variance
+class VarianceEstimation:
+    # Returns estimated variance
 
     def __init__(self, logprc, logprc_denoise, K = 60 * 10):
         self.logprc = logprc
