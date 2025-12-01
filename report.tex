@@ -5,7 +5,8 @@
 \begin{itemize}
     \item 1-second last mid price was observed for 1-month 
     \item Daily volatility is being estimated
-    \item Sampling period : K (60 * 60 * 24 = 86400)
+    \item Sampling period : K (60 * 10) (FIXME:10 minute; why?)
+    \item Parameter estimation period : M (60 * 60 * 24 = 86400) (FIXME: 1 day; why?)
     \item Sequence length : n (86400 * 30 = 2592000)
     \item time : $0<t<n$
     \item log-price : $x_t$ 
@@ -13,11 +14,11 @@
 \end{itemize}
 
 \section{Jump adjust}
-Removes jumps and stitch the log-pric
+Removes jumps and stitch the log-price
 
 \subsection{Truncation}
 Sub-Gaussian concentration condition was used to determine threshold parameter $\tau$ for each day.
-$$\tau = \sigma \sqrt{K} \sim \sqrt{\sum_t^{t+K}{r_t^2}}$$
+$$\tau = \sigma \sqrt{M} \sim \sqrt{\sum_t^{t+M}{r_t^2}}$$
 Truncation function with parameter $\tau$ was applied to the log return.
 $$\Psi_\tau(x) = \mathrm{sgn}(x) \min(|x|, \tau)$$
 
@@ -25,11 +26,11 @@ $$\Psi_\tau(x) = \mathrm{sgn}(x) \min(|x|, \tau)$$
 Huber loss of truncated series was minimized with L1 regularization, using daily volatility as prior.
 
 \begin{itemize}
-    \item Daily volatility : $\sigma^2_t =  \frac{1}{n-K}\sum_{t=1}^{n-K} \left(\frac{1}{K} \sum_{i=t}^{t+K} r_i \right)^2 $
-    \item Huber loss : $l_{\tau'}(x) = \mathrm{sgn}(x) \min(\frac{x^2}{2}, {\tau'} |x| - \frac{{\tau'}^2}{2})$\\
-         with $\tau' = \sigma \sqrt{K} \sim \sqrt{\sum_t^{t+K}{r_t^2}}$ 
+    \item Average daily volatility : $\sigma^2 =  \frac{1}{n-M}\sum_{t=1}^{n-M} \left(\frac{1}{M} \sum_{i=t}^{t+M} r_i \right)^2 $
+    \item Huber loss : $l_{\tau'}(x) = \min(\frac{x^2}{2}, {\tau'} |x| - \frac{{\tau'}^2}{2})$
+         with $\tau' = \sigma \sqrt{M} \sim \sqrt{\sum_t^{t+M}{r_t^2}}$ 
     \item Truncation : $\Psi_\tau(x) = \mathrm{sgn}(x) \min(|x|, \tau)$
-    \item Optimal truncation threshold $\hat\tau = \arg\min \left( \sum_{t}^{t_K}\tau l_{\tau'}(\sigma_t-\Psi(r_t)) \right)$
+    \item Optimal truncation threshold $\hat\tau = \arg\min \left(  l_{\tau'}\left(\sigma-\sqrt{\frac{1}{M}\sum_{t}^{t+M}\Psi(r_t)^2}\right) \right)$
 \end{itemize}
 
 \subsection{Benchmark}
@@ -39,10 +40,19 @@ Does not remove jump noise for benchmark purpose
 Removes high-frequency component
 
 \subsection{Pre-Averaging}
-Hourly rolling average 
+Windowing 
+$$r_{PA} = r_t * w $$
+was applied to the raw return $r_t$ with window size = K and 
+window function $w(s) = \min(s+1, (K-s))$
 
-\subsection{Fracdiff}
-Ensures stationarity while minimizng information loss.
+\subsection{Fractional diffusion}
+Models price process as fractional diffusion, and removes drift.\\
+Derivative with order < 0.2 is considered as drift, because stationarity is achieved (ADF test with p=0.01) at 0.2-th derivative.
+Fractional differentiation is an analytic continuation of discrete differentiation.
+$$ \frac{\partial^n x_t}{\partial t^n} = x(t) * w(s) ~~\mathrm{where}~~ w(s)=(_nC_s (-1)^s) $$
+$$ \frac{\partial^n x_t}{\partial t^n} = x(t) * w(s) ~~\mathrm{where}~~ w(s)=(\frac{\Gamma(n+1)}{\Gamma(s+1)\Gamma(n-s+1)} (-1)^s) $$
+
+See : Jiahao Jiang, Bing Miao; A study of anomalous stochastic processes via generalizing fractional calculus. Chaos 1 February 2025; 35 (2): 023156. https://doi.org/10.1063/5.0244009\\
 
 \subsection{Pad\'e transform}
 Models jumps as Lorentz peak of oscillator resonance.
@@ -50,8 +60,23 @@ Models jumps as Lorentz peak of oscillator resonance.
 \section{Volatility estimation}
 Estimate volatility, for given raw log-price and denoised log-price.
 \subsection{RV}
+Baseline. $\sigma_t = \frac{1}{K}\sum_{i=t}^{t+K} r_i^2$
+\subsection{TSRV}
+Two-scale realized volatility
+$$({\sigma_t^{TRV}})^2 = 
+\frac{1}{K}\sum_{i=t}^{t+K} (r_t^{PA})^2 
+- \frac{1}{2} \sum_{i=t}^{t+K}r_i^2 \sum_{s=1}^{K-1} \left( w(s) - w(s-1)^2\right)$$
+
+
+        logprc = self.logprc.copy()
+        x1 = np.square(logprc[:-K] -
+                       logprc[K:]).mean()
+        x2 = np.square(np.diff(logprc)).mean()
+        tsrv = x1 - x2
 \subsection{PRV}
-\subsection{TRV}
+Pre-averaging realized volatility with noise adjustment
+$$({\sigma_t^{PRV}})^2 = \frac{1}{K}\sum_{i=t}^{t+K} (r_t^{PA})^2 - \frac{1}{2} \sum_{i=t}^{t+K}r_i^2 \sum_{s=1}^{K-1} \left( w(s) - w(s-1)^2\right)$$
+where $w$ is window function.
 
 \section{Evaluation}
 Compare methods based on information measure
