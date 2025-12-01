@@ -37,7 +37,7 @@ class NoiseAdjust:
         assert self.logprc.shape == logprc_preavg.shape
         return logprc_preavg
     
-    def fracdiff(self, logprc, order=0.2, tau=1e-2)
+    def fracdiff(self, logprc, order=0.2, tau=1e-2):
         # NOTE: Not to be confused with Fractal derivative.
         logprc = self.logprc.copy()
         kernel = self.fracdiff_kernel(order, tau)
