@@ -1,6 +1,6 @@
 \documentclass{article}
+\usepackage{amsmath}
 \begin{document}
-
 \section{Notation}
 \begin{itemize}
     \item 1-second last mid price was observed for 1-month 
@@ -29,9 +29,18 @@ where $\sigma^2 = \frac{1}{M}\sum_{i=t}^{t+M}r_i$
 \subsection{Truncation with MLE}
 Huber loss of truncated series was minimized with L1 regularization, using daily volatility as prior.
 
+
+
 \begin{itemize}
     \item Average daily volatility : $\sigma^2 =  \frac{1}{n-M}\sum_{t=1}^{n-M} \left(\frac{1}{M} \sum_{i=t}^{t+M} r_i \right)^2 $
-    \item Huber loss : $l_{\tau'}(x) = \min(\frac{x^2}{2}, {\tau'} |x| - \frac{{\tau'}^2}{2})$
+    \item Huber loss : 
+        \begin{equation*}
+            l_{\tau'}(x) = 
+            \begin{cases}
+                \frac{x^2}{2} & \text{if} \;|x| \leq \tau' \\
+                |x| - \frac{{\tau'}^2}{2} & \text{if} \;|x| > \tau'
+            \end{cases} 
+        \end{equation*}
          with $\tau' = \sigma \sqrt{M} \sim \sqrt{\sum_t^{t+M}{r_t^2}}$ 
     \item Truncation : $\Psi_\tau(x) = \mathrm{sgn}(x) \min(|x|, \tau)$
     \item Optimal truncation threshold $\hat\tau = \arg\min \left(  l_{\tau'}\left(\sigma-\sqrt{\frac{1}{M}\sum_{t}^{t+M}\Psi(r_t)^2}\right) \right)$
