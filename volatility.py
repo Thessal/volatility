@@ -36,7 +36,8 @@ class VarianceEstimation:
         window = self.K
         kernel = np.minimum(np.linspace(0, 1, window+2),
                             np.linspace(1, 0, window+2))[1:-1]
-        kernel /= np.sqrt((np.square(kernel).sum())) 
-        noise_adjustment = np.square(logret).mean() * 0.5 * (np.square(np.diff(kernel)).sum())
+        kernel /= kernel.sum()
+        noise_adjustment = np.square(self.logret).mean() * 0.5 * (np.square(np.diff(kernel)).sum())
+        psi = np.sum(np.square(kernel))
 
-        return rv - noise_adjustment
+        return (rv - noise_adjustment) / psi

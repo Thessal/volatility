@@ -1,13 +1,16 @@
 import numpy as np 
+import scipy
+import statsmodels.tsa.stattools as st
 
-def comb(self, n, k):
+def comb(n, k):
+    # nCk
     return scipy.special.gamma(n+1)/scipy.special.gamma(k+1)/scipy.special.gamma(n-k+1)
 
-def fracdiff_kernel(self, order=2.5, tau=1e-2):
+def fracdiff_kernel(order=2.5, tau=1e-2):
     max_k = 1000
     coeffs = []
     for k in range(max_k):
-        coeff = (-1)**k * self.comb(order, k)
+        coeff = (-1)**k * comb(order, k)
         coeffs.append(coeff)
         if abs(coeff) < tau:
             break
@@ -19,7 +22,7 @@ class NoiseAdjust:
 
     def __init__(self, logprc, K = 60*10):
         self.logprc = logprc
-        self.logret = np.diff(self.logprc)
+        self.logret = np.diff(self.logprc, append=[logprc[-1]])
         assert self.logprc.shape == self.logret.shape
 
         self.n = len(self.logprc)
@@ -31,17 +34,17 @@ class NoiseAdjust:
         assert 0 < window < len(logret)
         kernel = np.minimum(np.linspace(0, 1, window+2),
                             np.linspace(1, 0, window+2))[1:-1]
-        kernel /= np.sqrt((np.square(kernel).sum()))  # psi = 1
-        logret_preavg = np.convolve(logret, kernel, mode='valid')
+        kernel /= kernel.sum()
+        logret_preavg = np.convolve(logret, kernel, mode='same')
         logprc_preavg = np.cumsum(logret_preavg)
         assert self.logprc.shape == logprc_preavg.shape
         return logprc_preavg
     
-    def fracdiff(self, logprc, order=0.2, tau=1e-2):
+    def fracdiff(self, order=0.2, tau=1e-2):
         # NOTE: Not to be confused with Fractal derivative.
         logprc = self.logprc.copy()
-        kernel = self.fracdiff_kernel(order, tau)
-        logprc_preavg = np.convolve(kernel, logprc, mode='valid')[:-len(kernel)+1]
+        kernel = fracdiff_kernel(order, tau)
+        logprc_preavg = np.convolve(kernel, logprc, mode='same')
         assert self.logprc.shape == logprc_preavg.shape
         return logprc_preavg
 
