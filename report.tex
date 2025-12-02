@@ -84,8 +84,17 @@ $$\mathrm{KL} ( P | P_0 ) $$
 where $P = P(\sigma_t|\sigma_t{-1}) = P(\sigma_{t}|\mathcal{F}_t)P(\sigma_{t-1})$ and $P_0 = P(\sigma_t)P(\sigma_t) = P(\sigma_{t})P(\sigma_{t-1})$.
 P is estimated using kernel density estimation.
 
-\subsection{Self-similarity dimension}.
-Fractal dimension is used to measure information amount, using box-counting method.
+\subsection{Self-similarity dimension}
+Self-similarity dimension was checked to ensure the time series is Brownian motion (D=1.5).
+Box-counting method was used to measure the self-similarity dimension\\ 
+% ~\\
+% ~\\
+% Exact monofractal is assumed and the self-similarity dimension was used as a proxy of Hausdorff dimension.\\
+% Self-similarity dimension was measured using the following box-counting method.
+$$ d = \frac{\log \left( \mathcal{N}\left({\text{grid size}}\right)\right)}{-\log(\text{grid size}) }  $$
+Where $\mathcal{N}$ is number of grid box that the price time seires touches.
+% np.log(len(df_point_cloud.multiply(grid_count-1e-6).apply(np.floor).drop_duplicates()))
+%  np.log(grid_count): np.log(len(df_point_cloud.multiply(grid_count-1e-6).apply(np.floor).drop_duplicates()))
 
 \subsection{Minkowski Measure}
 For given fractal dimension, measures persistency.
