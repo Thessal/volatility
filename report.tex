@@ -17,33 +17,24 @@
 Removes jumps and stitch the log-price
 
 \subsection{Truncation}
-Let truncation function $\Psi_\tau(x) = \mathrm{sgn}(x) \min(|x|, \tau)$.\\
-For the truncated process $\Psi_\tau(r_t)$, $-\tau \leq \Psi_\tau(r_t) \leq \tau$\\
-From Hoeffding's lemma
-$$E[\exp(\lambda r_t)] \leq \exp\left(\frac{\lambda^2 \tau^2}{2}\right)$$
-$\tau^2 < \sigma^2$ ensures $E[\exp(\lambda r_t)] \leq \exp\left(\frac{\lambda^2 \sigma^2}{2}\right) $ (sub-Gaussian)\\
+Truncation with $1\sigma$ was used. $$\tilde r_t = \Psi_\tau(r_t) = \mathrm{sgn}(r_t) \min\left(|r_t|, \tau=\sigma_t\right)$$
+where $\sigma^2 = \frac{1}{M}\sum_{i=t}^{t+M}r_i$ .\\
 ~\\
-So truncation was applied using, $$\tilde r_t = \Psi_\tau(r_t) = \mathrm{sgn}(r_t) \min\left(|r_t|, \tau=\sigma_t\right)$$
-where $\sigma^2 = \frac{1}{M}\sum_{i=t}^{t+M}r_i$
+$\tau = \sigma$ ensures the truncated process ensures sub-Gaussian condentration condition
+by Hoeffding's lemma
+$$E[\exp(\lambda r_t)] \leq \exp\left(\frac{\lambda^2 \tau^2}{2}\right) = \exp\left(\frac{\lambda^2 \sigma^2}{2}\right) $$
 
 \subsection{Truncation with MLE}
-Huber loss of truncated series was minimized with L1 regularization, using daily volatility as prior.
-
-
-
+It was assumed that the standard deviation of truncated return goes to the standard deviation of daily return.
 \begin{itemize}
-    \item Average daily volatility : $\sigma^2 =  \frac{1}{n-M}\sum_{t=1}^{n-M} \left(\frac{1}{M} \sum_{i=t}^{t+M} r_i \right)^2 $
-    \item Huber loss : 
-        \begin{equation*}
-            l_{\tau'}(x) = 
-            \begin{cases}
-                \frac{x^2}{2} & \text{if} \;|x| \leq \tau' \\
-                |x| - \frac{{\tau'}^2}{2} & \text{if} \;|x| > \tau'
-            \end{cases} 
-        \end{equation*}
-         with $\tau' = \sigma \sqrt{M} \sim \sqrt{\sum_t^{t+M}{r_t^2}}$ 
-    \item Truncation : $\Psi_\tau(x) = \mathrm{sgn}(x) \min(|x|, \tau)$
-    \item Optimal truncation threshold $\hat\tau = \arg\min \left(  l_{\tau'}\left(\sigma-\sqrt{\frac{1}{M}\sum_{t}^{t+M}\Psi(r_t)^2}\right) \right)$
+    \item Raw return : $r_t$
+    \item Truncated return with threshold $\tau$ : $\tilde r_t^\tau$
+    \item Standard deviation : $\sigma_t^\tau = \sqrt{\sum_{i=1}^{M}(\tilde r_{t+i}^\tau )^2}$
+    \item Daily return : $r_t^\text{daily} = \frac{1}{M} \sum_{i=0}^{M-1}r_{t+i}$
+    \item Daily standard deviation : $\sigma_t^\text{daily} = \sqrt{\sum_{i=1}^{M}(r_{t+i}^\text{daily})^2}$
+    \item Error : $\epsilon(\tau) = |\sigma_t^\tau - \sigma_t^\text{daily}|$
+    \item Loss : $l^\sigma(\epsilon(\tau))$ where loss function $l^\sigma$ is Huber loss with 1$\sigma$ boundary.
+    \item Optimal truncation threshold : $\hat\tau = \arg\min_\tau \left(  l^\sigma(\epsilon(\tau)) \right)$
 \end{itemize}
 
 \subsection{Benchmark}
@@ -63,7 +54,7 @@ Models price process as fractional diffusion, and removes drift.\\
 Derivative with order < 0.2 is considered as drift, because stationarity is achieved (ADF test with p=0.01) at 0.2-th derivative.
 Fractional differentiation is an analytic continuation of discrete differentiation.
 $$ \frac{\partial^n x_t}{\partial t^n} = x(t) * w(s) ~~\mathrm{where}~~ w(s)=(_nC_s (-1)^s) $$
-$$ \frac{\partial^n x_t}{\partial t^n} = x(t) * w(s) ~~\mathrm{where}~~ w(s)=(\frac{\Gamma(n+1)}{\Gamma(s+1)\Gamma(n-s+1)} (-1)^s) $$
+$$ \frac{\partial^n x_t}{\partial t^n} = x(t) * w(s) ~~\mathrm{where}~~ w(s)=\left(\frac{\Gamma(n+1)}{\Gamma(s+1)\Gamma(n-s+1)} (-1)^s\right) $$
 
 See : Jiahao Jiang, Bing Miao; A study of anomalous stochastic processes via generalizing fractional calculus. Chaos 1 February 2025; 35 (2): 023156. https://doi.org/10.1063/5.0244009\\
 

@@ -55,8 +55,8 @@ class JumpAdjust:
         losses = pd.DataFrame({
             tau: 
                 # self.huber(
-                    daily_std - 
-                    self._rolling_std(self.trunc(self.logret, tau), self.M)
+                    np.abs(daily_std - 
+                    self._rolling_std(self.trunc(self.logret, tau), self.M))
                     # ,
                     # tau_
                 # ).mean()

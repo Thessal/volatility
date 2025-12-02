@@ -14,39 +14,34 @@ except:
 
 
 class InformationMeasure:
-    def information_amount(self, x: np.ndarray, **kwargs) -> float:
-        raise NotImplementedError
-    
-class Filtration(InformationMeasure):
-    # 단순히 persistency를 measure하는 것일수도 있어서 주의 필요
+    # time fltration의 information 측정. KLD 기반.
     def information_amount(self, x: np.ndarray, n = 100) -> float:
         assert x.ndim == 1
         x = x.copy()
         
-        # Original density (noise + information)
-        d_orig = self.conditional_probability(x)
+        # Conditional probability density (noise + information)
+        d_cond = self.conditional_probability(x[:-1], x[1:])
 
-        # Shuffled (Filtration structure broken, noise only)
-        results = []
-        for _ in range(n):
-            np.random.shuffle(x)
-            d = self.conditional_probability(x)
-            
-            # KL-divergence (Information loss by breaking time dependency)
-            # kld = np.mean(d * np.log(np.maximum(d_orig,1e-6) / np.maximum(d, 1e-6)))
-            kld = np.mean(np.maximum(d_orig,1e-6) * np.log(np.maximum(d_orig,1e-6) / np.maximum(d, 1e-6)))
-            results.append(kld)
-        return float(np.mean(results))
+        # Unconditional prob density (time structure broken, prior noise)
+        d_uncond = self.conditional_probability(x[1:], x[1:])
 
-    def conditional_probability(self, x):
-        # Takens embedding
-        x0 = x[:-1]
-        x1 = x[1:]
+        kld = np.mean(np.maximum(d_cond,1e-6) * np.log(np.maximum(d_cond,1e-6) / np.maximum(d_uncond, 1e-6)))
+        # KLD here means information amount of timd dependency
+        return float(kld)
+
+    def conditional_probability(self, x0, x1):
+        # # Takens embedding
+        # x0 = x[:-1]
+        # x1 = x[1:]
         
         # Conditional expectation is a projection to known information set, in L2 space.
         # That is Ito calculus
         _, _, density = self.copula(x0, x1)
-        return density.ravel()
+
+        # Trivial normalization 
+        density = np.abs(density.ravel())
+        density /= np.sum(density)
+        return density
             
     def copula(self, x, y):
         # joint distribution estimation using KDE
