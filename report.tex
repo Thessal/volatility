@@ -51,7 +51,7 @@ window function $w(s) = \min(s+1, (K-s))$
 
 \subsection{Fractional diffusion}
 Models price process as fractional diffusion, and removes drift.\\
-Derivative with order < 0.2 is considered as drift, because stationarity is achieved (ADF test with p=0.01) at 0.2-th derivative.
+Derivative with order $<$ 0.2 is considered as drift, because stationarity is achieved (ADF test with p=0.01) at 0.2-th derivative.
 Fractional differentiation is an analytic continuation of discrete differentiation.
 $$ \frac{\partial^n x_t}{\partial t^n} = x(t) * w(s) ~~\mathrm{where}~~ w(s)=(_nC_s (-1)^s) $$
 $$ \frac{\partial^n x_t}{\partial t^n} = x(t) * w(s) ~~\mathrm{where}~~ w(s)=\left(\frac{\Gamma(n+1)}{\Gamma(s+1)\Gamma(n-s+1)} (-1)^s\right) $$
@@ -85,7 +85,7 @@ where $P = P(\sigma_t|\sigma_t{-1}) = P(\sigma_{t}|\mathcal{F}_t)P(\sigma_{t-1})
 P is estimated using kernel density estimation.
 
 \subsection{Self-similarity dimension}
-Self-similarity dimension was checked to ensure the time series is Brownian motion (D=1.5).
+Self-similarity dimension of the price chart was checked to ensure the time series is Brownian motion (D=1.5).
 Box-counting method was used to measure the self-similarity dimension\\ 
 % ~\\
 % ~\\
