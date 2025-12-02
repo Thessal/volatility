@@ -16,9 +16,9 @@ except:
 
 class Evaluation:
 
-    def __init__(self, logprc):
+    def __init__(self, logprc, K = 60*10):
         assert logprc.ndim == 1
-        logret = np.diff(logprc)
+        logret = np.diff(logprc[::K])
         most_frequent, _ = Counter(logret).most_common(n=1)[0]
         logret = logret[(logret != most_frequent) & (
             np.abs(logret) < 0.001)]  # remove extreme points
@@ -36,6 +36,8 @@ class Evaluation:
 
         kld = np.mean(np.maximum(d_cond, 1e-6) *
                       np.log(np.maximum(d_cond, 1e-6) / np.maximum(d_uncond, 1e-6)))
+        # kld = np.mean(np.maximum(d_uncond, 1e-6) *
+        #               np.log(np.maximum(d_cond, 1e-6) / np.maximum(d_uncond, 1e-6)))
         # KLD here means information amount of timd dependency
         return float(kld)
 
