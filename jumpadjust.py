@@ -6,7 +6,7 @@ class JumpAdjust:
     # Returns jump adjusted log-price and the estimated jump size
 
     def __init__(self, logprc, M = 60*60*24):
-        self.logprc = logprc
+        self.logprc = logprc.copy()
         self.logret = np.diff(self.logprc, append=[logprc[-1]])
         self.logret -= np.mean(self.logret) # detrend
         self.logprc = np.cumsum(self.logret)

@@ -21,7 +21,7 @@ class NoiseAdjust:
     # Returns denoised log-price
 
     def __init__(self, logprc, K = 60*10):
-        self.logprc = logprc
+        self.logprc = logprc.copy()
         self.logret = np.diff(self.logprc, append=[logprc[-1]])
         assert self.logprc.shape == self.logret.shape
 
