@@ -97,10 +97,3 @@ class Evaluation:
 # class Boxcounting(InformationMeasure):
 #     # Self similarity dimension using Box-counting method
 #     pass
-
-
-# class Fracdiff(InformationMeasure):
-#     # Projection to deterministic component
-#     # Stationarity test로 할지, 아니면 ito calculus 공부를 할지 고민중.
-#     # https://pubs.aip.org/aip/cha/article/35/2/023156/3336634/A-study-of-anomalous-stochastic-processes-via
-#     pass
