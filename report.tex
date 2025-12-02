@@ -71,12 +71,6 @@ $$({\sigma_t^{TRV}})^2 =
 \frac{1}{K}\sum_{i=t}^{t+K} (r_t^{PA})^2 
 - \frac{1}{2} \sum_{i=t}^{t+K}r_i^2 \sum_{s=1}^{K-1} \left( w(s) - w(s-1)^2\right)$$
 
-
-        logprc = self.logprc.copy()
-        x1 = np.square(logprc[:-K] -
-                       logprc[K:]).mean()
-        x2 = np.square(np.diff(logprc)).mean()
-        tsrv = x1 - x2
 \subsection{PRV}
 Pre-averaging realized volatility with noise adjustment
 $$({\sigma_t^{PRV}})^2 = \frac{1}{K}\sum_{i=t}^{t+K} (r_t^{PA})^2 - \frac{1}{2} \sum_{i=t}^{t+K}r_i^2 \sum_{s=1}^{K-1} \left( w(s) - w(s-1)^2\right)$$
