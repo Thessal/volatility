@@ -1,92 +1,189 @@
 \documentclass{article}
 \usepackage{amsmath}
+\usepackage{kotex}
+\usepackage{makecell}
+\usepackage[a4paper, margin=1in, footskip=0.5in, tmargin=0.75in, bmargin=0.5in]{geometry}
+
 \begin{document}
-\section{Notation}
-\begin{itemize}
-    \item 1-second last mid price was observed for 1-month 
-    \item Daily volatility is being estimated
-    \item Sampling period : K (60 * 10) (FIXME:10 minute; why?)
-    \item Parameter estimation period : M (60 * 60 * 24 = 86400) (FIXME: 1 day; why?)
-    \item Sequence length : n (86400 * 30 = 2592000)
-    \item time : $0<t<n$
-    \item log-price : $x_t$ 
-    \item log-return : $r_t$ 
-\end{itemize}
 
-\section{Jump adjust}
-Removes jumps and stitch the log-price
 
-\subsection{Truncation}
-Truncation with $1\sigma$ was used. $$\tilde r_t = \Psi_\tau(r_t) = \mathrm{sgn}(r_t) \min\left(|r_t|, \tau=\sigma_t\right)$$
-where $\sigma^2 = \frac{1}{M}\sum_{i=t}^{t+M}r_i$ .\\
-~\\
-$\tau = \sigma$ ensures the truncated process ensures sub-Gaussian condentration condition
-by Hoeffding's lemma
+\title{Final report}
+\author{Team 2}
+\maketitle
+
+\renewcommand{\abstractname}{}
+\begin{abstract}
+    Crypto 시장에서 고빈도 데이터 기반 거래소간 정보선도력 측정이 가능하다.
+    Cointegration 기반 정보선도력 추정시 noise에 의한 bias가 발생할 수 있다.
+    따라서 High-frequency data anaysis 방법을 적용하여 noise를 제거 후, BTC-USDT 가격에 대해 거래소간 정보선도력을 추정하고 결과를 검증한다.
+\end{abstract}
+\tableofcontents
+
+\section{Introduction}
+\subsection{Literature Research}
+
+Cointegration based methods can be applied to high-frequency crypto price data, To observe information leadership across exchange.
+High-frequency, intraday event pattern\cite{kirilenko2017flash}\cite{menkveld2019flash} 
+can be observed in crypto market, which is highly fragmented.
+
+We focus on daily information lead-lag effect among BTC-USDT exchanges, 
+although it known that there are various time scales of cross-exchange price discovery process.
+\cite{aiba2002triangular}\cite{morrison2020dao}\cite{albers2021fragmentation}.
+
+Jump and noise hadling can be an important\cite{shen2024defense} for ILS(Information Leadership Share) estimation.
+Truncation and pre-averaging was selected for log-price time series of BTC-USDT from 2020-08-19 to 2020-09-03.
+Relatively simple methods and easily available data, volume report, fee data was selected to minimize our implementation mistake.
+
+Our result shows that the truncation and the pre-averaging have effect on noise profile and the cointegration analysis result.
+We verify that some HFT research methods such as truncation and pre-averaging can be applied to the ILS measure.
+
+\subsection{Data}
+10-level quote data of the folowing BTC-USDT exchange was collected : 
+Bitfinex, FTX, Huobi, OKEX, Probit, Upbit.
+Data sampling frequency is about 1 second. Date period is from 2020-08-19 to 2020-09-03.
+Mid price was extracted frmo the quote data for simplicity, while use of the micro-price\cite{stoikov2018micro} can be an improvement.
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{|l|r|r|r|r|}
+    \hline
+        Exchange Name & 
+        \makecell{Coverage of \\the collected data} & 
+        \makecell{Fake-adjusted \\daily volume \cite{alameda}\\ as of 2019-05-28}  & 
+        \makecell{Standard \\transaction fee} & 
+        \makecell{Test Pass Score\cite{alameda}} \\ \hline
+    Bitfinex & 0.923985 & 189054133 & 0.002 & 5 \\ \hline
+    FTX & 0.930627 & 50444971 & unknown &  4 \\ \hline
+    Huobi & 0.943173& 3006542737 & 0.001 &  4.5 \\ \hline
+    OKEX & 0.941697 & 4728575030  & 0.002 & 4 \\ \hline
+    Probit & 0.931365 & unknown & unknown & unknown \\ \hline
+    Upbit & 0.539852 & 963941563 & 0.0005 & 4.5 \\ \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+
+\section{Denoising}
+
+
+% \subsection{Notation}
+% \begin{itemize}
+%     \item 1-second last mid price was observed for 1-month 
+%     \item Daily volatility is being estimated
+%     \item Sampling period : K (60 * 10) (FIXME:10 minute; why?)
+%     \item Parameter estimation period : M (60 * 60 * 24 = 86400) (FIXME: 1 day; why?)
+%     \item Sequence length : n (86400 * 30 = 2592000)
+%     \item time : $0<t<n$
+%     \item log-price : $x_t$ 
+%     \item log-return : $r_t$ 
+% \end{itemize}
+ 
+\subsection{Jump adjust}
+Jump-adjusted price was reconstructed by cumulatively summing the truncated log-return. 
+
+\subsubsection{Truncation with static threshold}
+Truncation with threshold parameter $\tau = \sigma$ was applied.
+$$\tilde r_t = \Psi_\tau(r_t) = \mathrm{sgn}(r_t) \min\left(|r_t|, \tau=\sigma_t\right)$$
+where $\sigma = \sqrt{\frac{1}{N} \sum_{t=0}^{N} {r^2_t}}$
+
+Truncated series satisfies the sub-Gaussian condition, by the Hoeffding's lemma.
 $$E[\exp(\lambda r_t)] \leq \exp\left(\frac{\lambda^2 \tau^2}{2}\right) = \exp\left(\frac{\lambda^2 \sigma^2}{2}\right) $$
 
-\subsection{Truncation with MLE}
-It was assumed that the standard deviation of truncated return goes to the standard deviation of daily return.
-\begin{itemize}
-    \item Raw return : $r_t$
-    \item Truncated return with threshold $\tau$ : $\tilde r_t^\tau$
-    \item Standard deviation : $\sigma_t^\tau = \sqrt{\sum_{i=1}^{M}(\tilde r_{t+i}^\tau )^2}$
-    \item Daily return : $r_t^\text{daily} = \frac{1}{M} \sum_{i=0}^{M-1}r_{t+i}$
-    \item Daily standard deviation : $\sigma_t^\text{daily} = \sqrt{\sum_{i=1}^{M}(r_{t+i}^\text{daily})^2}$
-    \item Error : $\epsilon(\tau) = |\sigma_t^\tau - \sigma_t^\text{daily}|$
-    \item Loss : $l^\sigma(\epsilon(\tau))$ where loss function $l^\sigma$ is Huber loss with 1$\sigma$ boundary.
-    \item Optimal truncation threshold : $\hat\tau = \arg\min_\tau \left(  l^\sigma(\epsilon(\tau)) \right)$
-\end{itemize}
 
-\subsection{Benchmark}
-Does not remove jump noise for benchmark purpose
 
-\section{Microstructure noise adjust}
-Removes high-frequency component
+\subsubsection{Truncation with MLE}
+Truncation treshold $\tau$ was dynamically optimzed based on the daily volatility. It was assumed that the microstructure noise small enough compared to the jump.
+$$\frac{1}{N} \sum_{t=0}^{N} r_t^2 = \sigma_{\text{true}}^2 +  \sigma_{\text{noise}}^2 + \sigma_{\text{jump}}^2 \sim \sigma_{\text{daily}}^2 + 0 + \sigma_{\text{jump}}^2 $$
+% Volatility from daily return was used as a measure of 
+To Minimize jump effect $\sigma_{\text{jump}}^2$, loss function was set to the following :
+$$L(\tau) = \left(\sum_{t=0}^{N} \text{Huber}((\tilde r_t^\tau)^2 - \sigma_{\text{daily}}^2)\right)$$
 
-\subsection{Pre-Averaging}
-Windowing 
-$$r_{PA} = r_t * w $$
-was applied to the raw return $r_t$ with window size = K and 
-window function $w(s) = \min(s+1, (K-s))$
+For each day, $\tau$ was optimized to minimize the loss. The $\tau$ was used for the truncation.
 
-\subsection{Fractional diffusion}
-Models price process as fractional diffusion, and removes drift.\\
-Derivative with order $<$ 0.2 is considered as drift, because stationarity is achieved (ADF test with p=0.01) at 0.2-th derivative.
-Fractional differentiation is an analytic continuation of discrete differentiation.
-$$ \frac{\partial^n x_t}{\partial t^n} = x(t) * w(s) ~~\mathrm{where}~~ w(s)=(_nC_s (-1)^s) $$
+% It was assumed that the standard deviation of truncated return goes to the standard deviation of daily return.
+% \begin{itemize}
+%     \item Raw return : $r_t$
+%     \item Truncated return with threshold $\tau$ : $\tilde r_t^\tau$
+%     \item Standard deviation : $\sigma_t^\tau = \sqrt{\sum_{i=1}^{M}(\tilde r_{t+i}^\tau )^2}$
+%     \item Daily return : $r_t^\text{daily} = \frac{1}{M} \sum_{i=0}^{M-1}r_{t+i}$
+%     \item Daily standard deviation : $\sigma_t^\text{daily} = \sqrt{\sum_{i=1}^{M}(r_{t+i}^\text{daily})^2}$
+%     \item Error : $\epsilon(\tau) = |\sigma_t^\tau - \sigma_t^\text{daily}|$
+%     \item Loss : $l^\sigma(\epsilon(\tau))$ where loss function $l^\sigma$ is Huber loss with 1$\sigma$ boundary.
+%     \item Optimal truncation threshold : $\hat\tau = \arg\min_\tau \left(  l^\sigma(\epsilon(\tau)) \right)$
+% \end{itemize}
+
+
+\subsection{Microstructure noise adjust}
+
+
+\subsubsection{Pre-Averaging}
+$N = 60 * 60 * 24 = 86400, K = \sqrt{N} = 293$ and Window function $g(x) = \min(x, 1-x)$ was chosen.
+From the pre-averaged return equation
+$$\bar Y (t_r) = \sum_{l=1}^{K-1} g(\frac{l}{k}) [Y_{t_{r+l}} - Y_{t_{r+l-1}}] = \sum_{l=1}^{K-1} g(\frac{l}{k}) Y_{t_{r+l}} - \sum_{l=1}^{K-1} g(\frac{l}{k})  Y_{t_{r+l-1}} = Y^\text{PR}_{t_{r+l}} - Y^\text{PR}_{t_{r+l-1}} $$
+Pre-averaged price $Y^\text{PR}_t = \sum_{l=1}^{K-1} g(\frac{l}{k}) Y_{t}$ is defined.
+
+Pre-averaging was applied to the jump-adjusted price to obtain noise-adjusted price.
+
+\subsubsection{Fractional differentiation}
+To check the effect of discretization noise as a source of microstructure noise, 
+Fractional differenentiation or order 0.2 was appplied to minimize the discretization effect.
+%  stationary for each day. To find 
+% Fractional The frequency of microstructure noise can be relatively high.
+
+Fractional differentiation is defined as 
 $$ \frac{\partial^n x_t}{\partial t^n} = x(t) * w(s) ~~\mathrm{where}~~ w(s)=\left(\frac{\Gamma(n+1)}{\Gamma(s+1)\Gamma(n-s+1)} (-1)^s\right) $$
+Order $n=0.2$ was chosen to ensure stationary with minimum differenentiation.
 
-See : Jiahao Jiang, Bing Miao; A study of anomalous stochastic processes via generalizing fractional calculus. Chaos 1 February 2025; 35 (2): 023156. https://doi.org/10.1063/5.0244009\\
+Resulting time series was cumulatively summed and used as noise-adjusted price.
 
-\subsection{Pad\'e transform}
-Models jumps as Lorentz peak of oscillator resonance.
 
-\section{Volatility estimation}
-Estimate volatility, for given raw log-price and denoised log-price.
-\subsection{RV}
-Baseline. $\sigma_t = \frac{1}{K}\sum_{i=t}^{t+K} r_i^2$
-\subsection{TSRV}
-Two-scale realized volatility
-$$({\sigma_t^{TRV}})^2 = 
-\frac{1}{K}\sum_{i=t}^{t+K} (r_t^{PA})^2 
-- \frac{1}{2} \sum_{i=t}^{t+K}r_i^2 \sum_{s=1}^{K-1} \left( w(s) - w(s-1)^2\right)$$
+\section{노이즈 크기 측정}
+\subsection{Spectral decomposition}
 
-\subsection{PRV}
-Pre-averaging realized volatility with noise adjustment
-$$({\sigma_t^{PRV}})^2 = \frac{1}{K}\sum_{i=t}^{t+K} (r_t^{PA})^2 - \frac{1}{2} \sum_{i=t}^{t+K}r_i^2 \sum_{s=1}^{K-1} \left( w(s) - w(s-1)^2\right)$$
-where $w$ is window function.
+\subsection{AC(1)}
 
-\section{Evaluation}
-Compare methods based on information measure
-\subsection{KLD of Conditional distribution}
-Measures the amount of information in time Filtration $\mathcal{F}_t$.
-$$\mathrm{KL} ( P | P_0 ) $$
-where $P = P(\sigma_t|\sigma_t{-1}) = P(\sigma_{t}|\mathcal{F}_t)P(\sigma_{t-1})$ and $P_0 = P(\sigma_t)P(\sigma_t) = P(\sigma_{t})P(\sigma_{t-1})$.
-P is estimated using kernel density estimation.
+% \subsection{(아래 section은 편의에 따라 넣거나 빼셔도 됩니다)}
+% \subsubsection{KLD of Conditional distribution}
+% Measures the amount of information in time Filtration $\mathcal{F}_t$.
+% $$\mathrm{KL} ( P | P_0 ) $$
+% where $P = P(\sigma_t|\sigma_t{-1}) = P(\sigma_{t}|\mathcal{F}_t)P(\sigma_{t-1})$ and $P_0 = P(\sigma_t)P(\sigma_t) = P(\sigma_{t})P(\sigma_{t-1})$.
+% P is estimated using kernel density estimation.
 
-\subsection{Self-similarity dimension}
-Self-similarity dimension of the price chart was checked to ensure the time series is Brownian motion (D=1.5).
-Box-counting method was used to measure the self-similarity dimension\\ 
+% \subsubsection{Self-similarity dimension}
+% Self-similarity dimension of the price chart was checked to ensure the time series is Brownian motion (D=1.5).
+% Box-counting method was used to measure the self-similarity dimension\\ 
+
+
+
+\section{Indicator}
+
+
+\section{Conclusion}
+
+
+
+
+\bibliography{report}{}
+\bibliographystyle{plain}
+
+\end{document}
+
+
+
+% \section{Volatility estimation}
+% Estimate volatility, for given raw log-price and denoised log-price.
+% \subsection{RV}
+% Baseline. $\sigma_t = \frac{1}{K}\sum_{i=t}^{t+K} r_i^2$
+% \subsection{TSRV}
+% Two-scale realized volatility
+% $$({\sigma_t^{TRV}})^2 = 
+% \frac{1}{K}\sum_{i=t}^{t+K} (r_t^{PA})^2 
+% - \frac{1}{2} \sum_{i=t}^{t+K}r_i^2 \sum_{s=1}^{K-1} \left( w(s) - w(s-1)^2\right)$$
+
+% \subsection{PRV}
+% Pre-averaging realized volatility with noise adjustment
+% $$({\sigma_t^{PRV}})^2 = \frac{1}{K}\sum_{i=t}^{t+K} (r_t^{PA})^2 - \frac{1}{2} \sum_{i=t}^{t+K}r_i^2 \sum_{s=1}^{K-1} \left( w(s) - w(s-1)^2\right)$$
+% where $w$ is window function.
 % ~\\
 % ~\\
 % Exact monofractal is assumed and the self-similarity dimension was used as a proxy of Hausdorff dimension.\\
@@ -95,8 +192,3 @@ $$ d = \frac{\log \left( \mathcal{N}\left({\text{grid size}}\right)\right)}{-\lo
 Where $\mathcal{N}$ is number of grid box that the price time seires touches.
 % np.log(len(df_point_cloud.multiply(grid_count-1e-6).apply(np.floor).drop_duplicates()))
 %  np.log(grid_count): np.log(len(df_point_cloud.multiply(grid_count-1e-6).apply(np.floor).drop_duplicates()))
-
-\subsection{Minkowski Measure}
-For given fractal dimension, measures persistency.
-
-\end{document}
